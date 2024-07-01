@@ -2,10 +2,12 @@ package pokeapi
 
 import (
 	"io"
+    "time"
 	"errors"
     "fmt"
 	"net/http"
     "encoding/json"
+    "github.com/halfdan87/boot-pokedex/internal/pokecache"
 )
 
 type Pagination struct {
@@ -26,19 +28,30 @@ type Location struct {
     Url string
 }
 
-func GetLocations(url *string) ([]string, *Pagination, error) {
-  res, err := http.Get(*url)
-  if err != nil {
-    return nil, nil, err 
-  }
+var cache *pokecache.Cache = pokecache.NewCache(2 * time.Minute)
 
-  body, err := io.ReadAll(res.Body)
-  res.Body.Close()
-  if res.StatusCode > 299 {
-    return nil, nil, errors.New(fmt.Sprintf("Response failed: %d", res.StatusCode))
-  }
-  if err != nil {
-    return nil, nil, err
+func GetLocations(url *string) ([]string, *Pagination, error) {
+  var body []byte
+  var err error
+
+  if item, ok := cache.Get(*url); ok {
+    body = item
+  } else {
+    res, err := http.Get(*url)
+    if err != nil {
+        return nil, nil, err 
+    }
+
+    body, err = io.ReadAll(res.Body)
+    if err != nil {
+        return nil, nil, err
+    }
+    res.Body.Close()
+    if res.StatusCode > 299 {
+        return nil, nil, errors.New(fmt.Sprintf("Response failed: %d", res.StatusCode))
+    }
+
+    cache.Add(*url, body)
   }
 
   response := Response{}
@@ -46,6 +59,8 @@ func GetLocations(url *string) ([]string, *Pagination, error) {
   if err != nil {
     return nil, nil, err
   }
+
+  fmt.Println("End Unmarshal")
 
   locationStrings := []string{}
 
