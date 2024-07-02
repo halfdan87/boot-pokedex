@@ -56,6 +56,11 @@ commands = map[string]cliCommand {
         description: "Print data about caught pokemones",
         callback: commandInspect,
     },
+    "pokedex": {
+        name: "pokedex",
+        description: "Prints names of all caught pokemones",
+        callback: commandPokedex,
+    },
 }
 }
 
@@ -177,6 +182,14 @@ func commandInspect(arg string) error {
     return nil
 }
 
+func commandPokedex(arg string) error {
+    fmt.Println("Your Pokedex:")
+    for _, pok := range caughtPokemones {
+        fmt.Println(fmt.Sprintf("- %s", pok.Name))
+    }
+
+    return nil
+}
 func main() {
 
     scanner := bufio.NewScanner(os.Stdin)
