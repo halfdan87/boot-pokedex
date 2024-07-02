@@ -6,6 +6,7 @@ import (
     "errors"
     "strings"
     "os"
+    "math/rand"
     "github.com/halfdan87/boot-pokedex/pokeapi"
 )
 
@@ -44,6 +45,11 @@ commands = map[string]cliCommand {
         name: "explore",
         description: "List pokemones in a specific location, provide location name as param",
         callback: commandExplore,
+    },
+    "catch": {
+        name: "catch",
+        description: "Try to catch a pokemon by name",
+        callback: commandCatch,
     },
 }
 }
@@ -109,6 +115,34 @@ func commandExplore(arg string) error {
 
     for _, pok := range pokemons {
         fmt.Println(pok)
+    }
+
+    return nil
+}
+
+var r *rand.Rand = rand.New(rand.NewSource(123))
+var caughtPokemones []pokeapi.ResponsePokemon = []pokeapi.ResponsePokemon{}
+
+func commandCatch(arg string) error {
+    pokemon, err := pokeapi.GetPokemon(arg)
+    if err != nil {
+        return err
+    }
+    
+    caught := r.Intn(pokemon.BaseExperience) < 100
+
+    fmt.Println(fmt.Sprintf("Throwing a Pokeball at %s...", arg))
+
+    if caught {
+        fmt.Println(fmt.Sprintf("%s caught!", arg))
+        for _, pok := range caughtPokemones {
+            if pok.Name == pokemon.Name {
+                return nil
+            }
+        }
+        caughtPokemones = append(caughtPokemones, pokemon)
+    } else {
+        fmt.Println(fmt.Sprintf("%s escaped!", arg))
     }
 
     return nil
