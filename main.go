@@ -4,6 +4,7 @@ import (
     "fmt"
     "bufio"
     "errors"
+    "strings"
     "os"
     "github.com/halfdan87/boot-pokedex/pokeapi"
 )
@@ -12,7 +13,7 @@ import (
 type cliCommand struct {
     name string
     description string
-    callback func(pager *pokeapi.Pagination) error
+    callback func(arg string) error
 }
 
 var commands map[string]cliCommand
@@ -39,20 +40,31 @@ commands = map[string]cliCommand {
         description: "List locations, 20 previous ones",
         callback: commandMapb,
     },
+    "explore": {
+        name: "explore",
+        description: "List pokemones in a specific location, provide location name as param",
+        callback: commandExplore,
+    },
 }
 }
 
-func commandHelp(pager *pokeapi.Pagination) error {
+func commandHelp(arg string) error {
     fmt.Println("Type pokemon name and I will provide a description")
     return nil
 }
 
-func commandExit(pager *pokeapi.Pagination) error {
+func commandExit(arg string) error {
     fmt.Println("Exiting")
     return nil
 }
 
-func commandMap(pager *pokeapi.Pagination) error {
+var defaultUrl string = "https://pokeapi.co/api/v2/location"
+var pager pokeapi.Pagination = pokeapi.Pagination{
+    Next : &defaultUrl,
+}
+
+
+func commandMap(arg string) error {
     if pager.Next == nil {
         return errors.New("No more next locations")
     }
@@ -61,7 +73,7 @@ func commandMap(pager *pokeapi.Pagination) error {
         return err
     }
 
-    *pager = *newPager
+    pager = *newPager
 
     for _, loc := range locations {
         fmt.Println(loc)
@@ -70,7 +82,7 @@ func commandMap(pager *pokeapi.Pagination) error {
     return nil
 }
 
-func commandMapb(pager *pokeapi.Pagination) error {
+func commandMapb(arg string) error {
     if pager.Prev == nil {
         return errors.New("No more previous locations")
     }
@@ -80,10 +92,23 @@ func commandMapb(pager *pokeapi.Pagination) error {
         return err
     }
 
-    *pager = *newPager
+    pager = *newPager
 
     for _, loc := range locations {
         fmt.Println(loc)
+    }
+
+    return nil
+}
+
+func commandExplore(arg string) error {
+    pokemons, err := pokeapi.GetPokemons(arg)
+    if err != nil {
+        return err
+    }
+
+    for _, pok := range pokemons {
+        fmt.Println(pok)
     }
 
     return nil
@@ -93,11 +118,6 @@ func main() {
 
     scanner := bufio.NewScanner(os.Stdin)
 
-    defaultUrl := "https://pokeapi.co/api/v2/location"
-
-    pager := pokeapi.Pagination{
-        Next : &defaultUrl,
-    }
 
     for {
         fmt.Print("pokedex >")
@@ -105,13 +125,21 @@ func main() {
         scanner.Scan()
         command := scanner.Text()
 
+        parts := strings.Split(command, " ")
+        var arg string = ""
+
+        if len(parts) == 2 {
+            command = parts[0]
+            arg = parts[1]
+        }
+
         cmd, ok := commands[command]
         if !ok {
             fmt.Println("Command does not exist: ", command) 
             continue
         }
 
-        err := cmd.callback(&pager)
+        err := cmd.callback(arg)
         if err != nil {
             fmt.Println("Error executing command: ", err)
             continue
