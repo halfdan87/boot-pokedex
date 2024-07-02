@@ -51,6 +51,11 @@ commands = map[string]cliCommand {
         description: "Try to catch a pokemon by name",
         callback: commandCatch,
     },
+    "inspect": {
+        name: "inspect",
+        description: "Print data about caught pokemones",
+        callback: commandInspect,
+    },
 }
 }
 
@@ -145,6 +150,30 @@ func commandCatch(arg string) error {
         fmt.Println(fmt.Sprintf("%s escaped!", arg))
     }
 
+    return nil
+}
+
+
+func commandInspect(arg string) error {
+    for _, pok := range caughtPokemones {
+        if pok.Name == arg {
+
+            fmt.Println(fmt.Sprintf("Name: %s", pok.Name))
+            fmt.Println(fmt.Sprintf("Height: %d", pok.Height))
+            fmt.Println(fmt.Sprintf("Weight: %d", pok.Weight))
+            fmt.Println("Stats:")
+            for _, stat := range pok.Stats {
+                fmt.Println(fmt.Sprintf("%s: %d", stat.Stat.Name, stat.BaseStat))
+            }
+            fmt.Println("Types:")
+            for _, typ := range pok.Types{
+                fmt.Println(fmt.Sprintf("%s", typ.Type.Name))
+            }
+            return nil
+        }
+    }
+
+    fmt.Println(fmt.Sprintf("You have not yet cought %s", arg))
     return nil
 }
 
